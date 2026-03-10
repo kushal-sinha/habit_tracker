@@ -15,8 +15,6 @@ interface LevelCardProps {
 }
 
 export function LevelCard({ level, progress, title }: LevelCardProps) {
-
-  console.log('LevelCard', level, progress, title);
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'dark'];
   const barWidth = useSharedValue(progress);

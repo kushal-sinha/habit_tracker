@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Heatmap } from '@/components/Heatmap';
 import { LevelCard } from '@/components/LevelCard';
@@ -12,8 +12,19 @@ export default function StatsScreen() {
   const colorScheme = useColorScheme();
   const insets = useSafeAreaInsets();
   const colors = Colors[colorScheme ?? 'dark'];
-  const { totalXP, level, levelProgress, levelName, heatmapData } = useHabitStore();
+  const { totalXP, level, levelProgress, levelName, heatmapData, resetProgress } = useHabitStore();
   const heatmap = useMemo(() => heatmapData(), [heatmapData]);
+
+  const handleResetProgress = () => {
+    Alert.alert(
+      'Reset progress?',
+      'This will set your XP and streak back to 0. Your habits and history will stay.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Reset', style: 'destructive', onPress: () => resetProgress() },
+      ]
+    );
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -34,6 +45,14 @@ export default function StatsScreen() {
           <Text style={[styles.xpValue, { color: colors.text }]}>{totalXP} XP</Text>
           <Text style={[styles.xpLabel, { color: colors.muted }]}>Total experience</Text>
         </View>
+
+        <Pressable
+          onPress={handleResetProgress}
+          style={[styles.resetBtn, { borderColor: colors.cardBorder }]}
+        >
+          <Ionicons name="refresh-outline" size={18} color={colors.muted} />
+          <Text style={[styles.resetBtnText, { color: colors.muted }]}>Reset level & streak</Text>
+        </Pressable>
 
         <Heatmap data={heatmap} />
       </ScrollView>
@@ -76,5 +95,19 @@ const styles = StyleSheet.create({
   xpLabel: {
     fontSize: 13,
     marginLeft: 'auto',
+  },
+  resetBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 24,
+  },
+  resetBtnText: {
+    fontSize: 14,
   },
 });

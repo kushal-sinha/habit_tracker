@@ -1,22 +1,13 @@
-import React, { useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
 import Svg, { Rect } from 'react-native-svg';
-import Animated, {
-  useAnimatedProps,
-  useSharedValue,
-  withDelay,
-  withSpring,
-} from 'react-native-reanimated';
 import { getDaysInRange, getWeekday } from '@/utils/date';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-const AnimatedRect = Animated.createAnimatedComponent(Rect);
-
-const COLS = 13;
-const CELL = 10;
-const GAP = 3;
-const WIDTH = COLS * (CELL + GAP) - GAP;
+const COLS = 7; // days per week
+const GAP = 2;
+const DAYS_COUNT = 30;
 
 function getColor(count: number, total: number, isDark: boolean): string {
   if (total === 0) return isDark ? '#2d2d44' : '#e5e7eb';
@@ -35,18 +26,25 @@ export function Heatmap({ data }: HeatmapProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const colors = Colors[colorScheme ?? 'dark'];
+  const [layoutWidth, setLayoutWidth] = useState(0);
 
-  const days = getDaysInRange(90);
+  const onLayout = useCallback((e: LayoutChangeEvent) => {
+    const w = e.nativeEvent.layout.width;
+    if (w > 0) setLayoutWidth(w);
+  }, []);
+
+  // Oldest first so top row = start of period, bottom row = recent (today)
+  const daysOldestFirst = [...getDaysInRange(DAYS_COUNT)].reverse();
   const mapByDate = new Map(data.map((d) => [d.date, d]));
 
   const rows: { date: string; count: number; total: number }[][] = [];
   let week: { date: string; count: number; total: number }[] = [];
-  let startDow = getWeekday(days[0]);
+  const startDow = getWeekday(daysOldestFirst[0]);
 
   for (let i = 0; i < startDow; i++) {
     week.push({ date: '', count: 0, total: 0 });
   }
-  for (const d of days) {
+  for (const d of daysOldestFirst) {
     const r = mapByDate.get(d) ?? { date: d, count: 0, total: 0 };
     week.push(r);
     if (week.length === 7) {
@@ -59,21 +57,26 @@ export function Heatmap({ data }: HeatmapProps) {
     rows.push(week);
   }
 
+  // Cell size so grid fills full container width
+  const cell = layoutWidth > 0 ? (layoutWidth + GAP) / COLS - GAP : 8;
+  const width = layoutWidth > 0 ? layoutWidth : COLS * (8 + GAP) - GAP;
+  const height = rows.length * (cell + GAP) - GAP;
+
   return (
-    <View style={styles.wrap}>
-      <Text style={[styles.title, { color: colors.text }]}>Last 90 days</Text>
-      <Svg width={WIDTH} height={rows.length * (CELL + GAP) - GAP} style={styles.svg}>
+    <View style={styles.wrap} onLayout={onLayout}>
+      <Text style={[styles.title, { color: colors.text }]}>Last 30 days</Text>
+      <Svg width={width} height={height} style={styles.svg}>
         {rows.map((row, ri) =>
-          row.map((cell, ci) => {
-            if (!cell.date) return null;
-            const fill = getColor(cell.count, cell.total, isDark);
+          row.map((cellData, ci) => {
+            if (!cellData.date) return null;
+            const fill = getColor(cellData.count, cellData.total, isDark);
             return (
               <Rect
                 key={`${ri}-${ci}`}
-                x={ci * (CELL + GAP)}
-                y={ri * (CELL + GAP)}
-                width={CELL}
-                height={CELL}
+                x={ci * (cell + GAP)}
+                y={ri * (cell + GAP)}
+                width={cell}
+                height={cell}
                 rx={3}
                 fill={fill}
               />
@@ -88,6 +91,7 @@ export function Heatmap({ data }: HeatmapProps) {
 const styles = StyleSheet.create({
   wrap: {
     marginVertical: 8,
+    width: '100%',
   },
   title: {
     fontSize: 14,
@@ -95,6 +99,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   svg: {
-    alignSelf: 'flex-start',
+    alignSelf: 'stretch',
   },
 });

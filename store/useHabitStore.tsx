@@ -1,11 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useCallback, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import type { DayRecord, Habit } from '@/types/habit';
 import { todayKey, getDaysInRange, parseDateKey } from '@/utils/date';
 import {
   XP_PER_HABIT,
   XP_ALL_DAILY,
-  XP_STREAK_BONUS,
   XP_LEVEL_BASE,
   LEVEL_NAMES,
 } from '@/types/habit';
@@ -30,7 +29,11 @@ function levelFromXP(xp: number): { level: number; progress: number; name: strin
   return { level, progress: Math.min(1, progress), name };
 }
 
-export function useHabitStore() {
+type HabitStoreValue = ReturnType<typeof useHabitStoreInner>;
+
+const HabitStoreContext = createContext<HabitStoreValue | null>(null);
+
+function useHabitStoreInner() {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [records, setRecords] = useState<Record<string, DayRecord>>({});
   const [totalXP, setTotalXP] = useState(0);
@@ -182,6 +185,11 @@ export function useHabitStore() {
     [habits, persistHabits]
   );
 
+  const resetProgress = useCallback(() => {
+    persistXP(0);
+    persistStreak(0, null);
+  }, [persistXP, persistStreak]);
+
   const todayRecord = records[todayKey()];
   const completedToday = habits.filter((h) => h.completedToday).length;
   const totalToday = habits.length;
@@ -209,6 +217,7 @@ export function useHabitStore() {
     addHabit,
     toggleHabit,
     deleteHabit,
+    resetProgress,
     todayRecord,
     completedToday,
     totalToday,
@@ -220,4 +229,15 @@ export function useHabitStore() {
     levelName,
     refresh: load,
   };
+}
+
+export function HabitStoreProvider({ children }: { children: React.ReactNode }) {
+  const value = useHabitStoreInner();
+  return <HabitStoreContext.Provider value={value}>{children}</HabitStoreContext.Provider>;
+}
+
+export function useHabitStore(): HabitStoreValue {
+  const ctx = useContext(HabitStoreContext);
+  if (ctx == null) throw new Error('useHabitStore must be used within HabitStoreProvider');
+  return ctx;
 }
