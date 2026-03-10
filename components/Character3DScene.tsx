@@ -4,6 +4,8 @@ import * as THREE from 'three';
 import type { CharacterMood } from '@/types/habit';
 import type { CharacterSkin } from '@/types/achievements';
 
+const CHARACTER_OFFSET_Y = -0.35;
+
 function CharacterMesh({ mood, skin }: { mood: CharacterMood; skin: CharacterSkin }) {
   const group = useRef<THREE.Group>(null);
   const head = useRef<THREE.Mesh>(null);
@@ -29,23 +31,24 @@ function CharacterMesh({ mood, skin }: { mood: CharacterMood; skin: CharacterSki
 
     const floatY = Math.sin(t * 1.2) * 0.08;
     const breathe = 1 + Math.sin(t * 2) * 0.06;
-    group.current.position.y = floatY;
+    const baseY = CHARACTER_OFFSET_Y + floatY;
+    group.current.position.y = baseY;
     body.current.scale.setScalar(breathe);
 
     if (mood === 'habit_completed') {
       const jump = Math.min(1, mt * 4);
       const y = Math.sin(jump * Math.PI) * 0.4;
-      group.current.position.y = floatY + y;
+      group.current.position.y = baseY + y;
       group.current.rotation.x = 0;
       group.current.rotation.y = 0;
     } else if (mood === 'all_completed') {
       const spin = Math.min(1, mt * 0.8);
       group.current.rotation.y = spin * Math.PI * 2;
-      group.current.position.y = floatY + Math.sin(spin * Math.PI) * 0.3;
+      group.current.position.y = baseY + Math.sin(spin * Math.PI) * 0.3;
       group.current.rotation.x = 0;
     } else if (mood === 'streak_broken') {
       group.current.rotation.x = Math.sin(t * 0.8) * 0.15;
-      group.current.position.y = floatY - 0.1;
+      group.current.position.y = baseY - 0.1;
       group.current.rotation.y = 0;
     } else {
       group.current.rotation.x = 0;
@@ -349,7 +352,7 @@ export function Character3DScene({ mood, skin, style }: Character3DSceneProps) {
     <Canvas
       style={style}
       gl={{ antialias: true, alpha: true }}
-      camera={{ position: [0, 0.25, 2.8], fov: 52 }}
+      camera={{ position: [0, 1.1, 2.8], fov: 52 }}
     >
       <ambientLight intensity={0.8} />
       <directionalLight position={[2, 3, 2]} intensity={1} />

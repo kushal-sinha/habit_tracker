@@ -267,6 +267,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   characterWrap: {
+    marginTop: 24,
     marginBottom: 16,
     height: 180,
   },

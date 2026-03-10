@@ -51,7 +51,8 @@ export default function AddHabitScreen() {
         <View style={styles.closeBtn} />
       </View>
 
-      <View style={[styles.form, { paddingBottom: insets.bottom + 24 }]}>
+      <View style={[styles.formWrap, { paddingBottom: insets.bottom + 24 }]}>
+        <View style={styles.form}>
         <Text style={[styles.label, { color: colors.muted }]}>What do you want to track?</Text>
         <TextInput
           style={[styles.input, { backgroundColor: colors.card, borderColor: colors.cardBorder, color: colors.text }]}
@@ -75,6 +76,7 @@ export default function AddHabitScreen() {
         >
           <Text style={styles.saveBtnText}>Add Habit</Text>
         </AnimatedPressable>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
@@ -101,6 +103,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '700',
+  },
+  formWrap: {
+    flex: 1,
+    justifyContent: 'center',
   },
   form: {
     padding: 20,

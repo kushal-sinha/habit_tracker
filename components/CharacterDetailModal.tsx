@@ -51,7 +51,10 @@ export function CharacterDetailModal({
 
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]}
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: insets.bottom , flexGrow: 1, justifyContent: 'center' },
+          ]}
           showsVerticalScrollIndicator={false}
         >
           {/* 3D Preview */}
