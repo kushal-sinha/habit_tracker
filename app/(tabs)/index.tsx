@@ -20,6 +20,7 @@ import { StreakCounter } from '@/components/StreakCounter';
 import { TodoCard } from '@/components/TodoCard';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAchievementStore } from '@/store/useAchievementStore';
 import { useHabitStore } from '@/store/useHabitStore';
 import { useTodoStore } from '@/store/useTodoStore';
 import type { CharacterMood } from '@/types/habit';
@@ -44,6 +45,8 @@ export default function HomeScreen() {
     levelName,
     totalXP,
   } = useHabitStore();
+
+  const { currentCharacter } = useAchievementStore(currentStreak);
 
   const {
     todos: todayTodos,
@@ -126,9 +129,9 @@ export default function HomeScreen() {
           <StreakCounter streak={currentStreak} justIncreased={justIncreasedStreak.current} />
         </View>
 
-        {/* 3D Character */}
+        {/* 3D Character - unlocks by streak */}
         <View style={styles.characterWrap}>
-          <Character3D mood={characterMood} />
+          <Character3D mood={characterMood} skin={currentCharacter} />
         </View>
 
         {/* Level - key so bar resets when XP changes (e.g. on undo) */}

@@ -1,16 +1,21 @@
 import React from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import type { CharacterMood } from '@/types/habit';
+import type { CharacterSkin } from '@/types/achievements';
+import { getCharacterForStreak } from '@/types/achievements';
 
 interface Character3DProps {
   mood: CharacterMood;
+  skin?: CharacterSkin;
 }
 
-export function Character3D({ mood }: Character3DProps) {
+export function Character3D({ mood, skin: skinProp }: Character3DProps) {
+  const skin = skinProp ?? getCharacterForStreak(0);
+
   if (Platform.OS === 'web') {
     return (
       <View style={[styles.container, styles.fallback]}>
-        <View style={styles.fallbackBlob} />
+        <View style={[styles.fallbackBlob, { backgroundColor: skin.bodyColor }]} />
       </View>
     );
   }
@@ -19,13 +24,13 @@ export function Character3D({ mood }: Character3DProps) {
     const { Character3DScene } = require('./Character3DScene');
     return (
       <View style={styles.container}>
-        <Character3DScene mood={mood} style={styles.canvas} />
+        <Character3DScene mood={mood} skin={skin} style={styles.canvas} />
       </View>
     );
   } catch {
     return (
       <View style={[styles.container, styles.fallback]}>
-        <View style={styles.fallbackBlob} />
+        <View style={[styles.fallbackBlob, { backgroundColor: skin.bodyColor }]} />
       </View>
     );
   }
