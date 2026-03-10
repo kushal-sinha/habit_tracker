@@ -24,9 +24,12 @@ export function HabitCard({ habit, onToggle, onDelete }: HabitCardProps) {
   const colorScheme = useColorScheme();
   const scale = useSharedValue(1);
   const checkScale = useSharedValue(habit.completedToday ? 1 : 0);
+  const lastCompletedRef = React.useRef(habit.completedToday);
   const colors = Colors[colorScheme ?? 'dark'];
 
   React.useEffect(() => {
+    if (lastCompletedRef.current === habit.completedToday) return;
+    lastCompletedRef.current = habit.completedToday;
     checkScale.value = withSpring(habit.completedToday ? 1 : 0, { damping: 12 });
   }, [habit.completedToday]);
 
@@ -86,6 +89,18 @@ export function HabitCard({ habit, onToggle, onDelete }: HabitCardProps) {
       >
         {habit.title}
       </Text>
+      {onDelete && (
+        <Pressable
+          onPress={(e) => {
+            e.stopPropagation();
+            onDelete(habit.id);
+          }}
+          hitSlop={8}
+          style={styles.deleteBtn}
+        >
+          <Ionicons name="trash-outline" size={20} color={colors.muted} />
+        </Pressable>
+      )}
     </AnimatedPressable>
   );
 }
@@ -130,5 +145,9 @@ const styles = StyleSheet.create({
   titleCompleted: {
     textDecorationLine: 'line-through',
     opacity: 0.7,
+  },
+  deleteBtn: {
+    padding: 4,
+    marginLeft: 4,
   },
 });

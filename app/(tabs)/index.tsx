@@ -20,6 +20,7 @@ import { StreakCounter } from '@/components/StreakCounter';
 import { TodoCard } from '@/components/TodoCard';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useDailyHabitReminder } from '@/hooks/useDailyHabitReminder';
 import { useAchievementStore } from '@/store/useAchievementStore';
 import { useHabitStore } from '@/store/useHabitStore';
 import { useTodoStore } from '@/store/useTodoStore';
@@ -34,10 +35,10 @@ export default function HomeScreen() {
     loaded,
     habits,
     toggleHabit,
+    deleteHabit,
     completedToday,
     totalToday,
     allDoneToday,
-    progressPercent,
     currentStreak,
     heatmapData,
     level,
@@ -63,6 +64,15 @@ export default function HomeScreen() {
   const justIncreasedStreak = useRef(false);
 
   const heatmap = useMemo(() => heatmapData(), [heatmapData]);
+
+  const completedTodos = todayTodos.filter((t) => t.completed).length;
+  const totalTodos = todayTodos.length;
+  const dailyProgressPercent =
+    totalToday + totalTodos > 0
+      ? ((completedToday + completedTodos) / (totalToday + totalTodos)) * 100
+      : 0;
+
+  useDailyHabitReminder(habits.length);
 
   React.useEffect(() => {
     if (allDoneToday && totalToday > 0 && !prevAllDone.current) {
@@ -142,10 +152,10 @@ export default function HomeScreen() {
           title={levelName}
         />
 
-        {/* Daily Progress */}
+        {/* Daily Progress (habits + todos) */}
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Daily Progress</Text>
         <View style={styles.progressWrap}>
-          <ProgressRing progress={progressPercent} label="Completed" />
+          <ProgressRing progress={dailyProgressPercent} label="Completed" />
         </View>
 
         {/* Today's Habits */}
@@ -171,7 +181,7 @@ export default function HomeScreen() {
           </View>
         ) : (
           habits.map((habit) => (
-            <HabitCard key={habit.id} habit={habit} onToggle={handleToggle} />
+            <HabitCard key={habit.id} habit={habit} onToggle={handleToggle} onDelete={deleteHabit} />
           ))
         )}
 

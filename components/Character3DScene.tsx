@@ -36,13 +36,20 @@ function CharacterMesh({ mood, skin }: { mood: CharacterMood; skin: CharacterSki
       const jump = Math.min(1, mt * 4);
       const y = Math.sin(jump * Math.PI) * 0.4;
       group.current.position.y = floatY + y;
+      group.current.rotation.x = 0;
+      group.current.rotation.y = 0;
     } else if (mood === 'all_completed') {
       const spin = Math.min(1, mt * 0.8);
       group.current.rotation.y = spin * Math.PI * 2;
       group.current.position.y = floatY + Math.sin(spin * Math.PI) * 0.3;
+      group.current.rotation.x = 0;
     } else if (mood === 'streak_broken') {
       group.current.rotation.x = Math.sin(t * 0.8) * 0.15;
       group.current.position.y = floatY - 0.1;
+      group.current.rotation.y = 0;
+    } else {
+      group.current.rotation.x = 0;
+      group.current.rotation.y = 0;
     }
   });
 

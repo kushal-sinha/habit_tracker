@@ -185,16 +185,6 @@ function useHabitStoreInner() {
     [habits, persistHabits]
   );
 
-  const resetProgress = useCallback(() => {
-    persistXP(0);
-    persistStreak(0, null);
-  }, [persistXP, persistStreak]);
-
-  const todayRecord = records[todayKey()];
-  const completedToday = habits.filter((h) => h.completedToday).length;
-  const totalToday = habits.length;
-  const allDoneToday = totalToday > 0 && completedToday === totalToday;
-  const progressPercent = totalToday > 0 ? (completedToday / totalToday) * 100 : 0;
 
   const heatmapData = useCallback(() => {
     const keys = getDaysInRange(90);
@@ -204,6 +194,19 @@ function useHabitStoreInner() {
       total: records[date]?.totalCount ?? 0,
     }));
   }, [records]);
+
+  const resetProgress = useCallback(() => {
+    persistXP(0);
+    persistStreak(0, null);
+    persistRecords({});
+  }, [persistXP, persistStreak, persistRecords]);
+
+  const todayRecord = records[todayKey()];
+  const completedToday = habits.filter((h) => h.completedToday).length;
+  const totalToday = habits.length;
+  const allDoneToday = totalToday > 0 && completedToday === totalToday;
+  const progressPercent = totalToday > 0 ? (completedToday / totalToday) * 100 : 0;
+
 
   const { level, progress: levelProgress, name: levelName } = levelFromXP(totalXP);
 
