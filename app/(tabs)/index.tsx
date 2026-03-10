@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   todoAddBtn: {
-    paddingVertical: 14,
+    paddingVertical: 15,
     paddingHorizontal: 18,
     justifyContent: 'center',
   },
