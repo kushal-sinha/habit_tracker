@@ -1,98 +1,340 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
+import React, { useMemo, useRef, useState } from 'react';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Character3D } from '@/components/Character3D';
+import { ConfettiCelebration } from '@/components/ConfettiCelebration';
+import { HabitCard } from '@/components/HabitCard';
+import { Heatmap } from '@/components/Heatmap';
+import { LevelCard } from '@/components/LevelCard';
+import { ProgressRing } from '@/components/ProgressRing';
+import { StreakCounter } from '@/components/StreakCounter';
+import { TodoCard } from '@/components/TodoCard';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useHabitStore } from '@/store/useHabitStore';
+import { useTodoStore } from '@/store/useTodoStore';
+import type { CharacterMood } from '@/types/habit';
+import { getGreeting } from '@/utils/date';
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const colorScheme = useColorScheme();
+  const insets = useSafeAreaInsets();
+  const colors = Colors[colorScheme ?? 'dark'];
+  const {
+    loaded,
+    habits,
+    toggleHabit,
+    completedToday,
+    totalToday,
+    allDoneToday,
+    progressPercent,
+    currentStreak,
+    heatmapData,
+    level,
+    levelProgress,
+    levelName,
+    totalXP,
+  } = useHabitStore();
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const {
+    todos: todayTodos,
+    addTodo,
+    toggleTodo,
+    deleteTodo,
+  } = useTodoStore();
+
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [newTodoTitle, setNewTodoTitle] = useState('');
+  const [characterMood, setCharacterMood] = useState<CharacterMood>('idle');
+  const prevAllDone = useRef(false);
+  const prevStreak = useRef(currentStreak);
+  const justIncreasedStreak = useRef(false);
+
+  const heatmap = useMemo(() => heatmapData(), [heatmapData]);
+
+  React.useEffect(() => {
+    if (allDoneToday && totalToday > 0 && !prevAllDone.current) {
+      setShowCelebration(true);
+      setCharacterMood('all_completed');
+    }
+    prevAllDone.current = allDoneToday;
+  }, [allDoneToday, totalToday]);
+
+  const handleToggle = (id: string) => {
+    const result = toggleHabit(id);
+    if (result.isUncheck) {
+      setCharacterMood('idle');
+      setShowCelebration(false);
+      prevStreak.current = result.newStreak;
+      justIncreasedStreak.current = false;
+    } else {
+      if (result.allDone) {
+        setCharacterMood('all_completed');
+        setShowCelebration(true);
+      } else if (result.completed > 0) {
+        setCharacterMood('habit_completed');
+        setTimeout(() => setCharacterMood('idle'), 1500);
+      }
+      if (result.newStreak > prevStreak.current) {
+        justIncreasedStreak.current = true;
+        prevStreak.current = result.newStreak;
+      }
+    }
+  };
+
+  const handleAddTodo = () => {
+    const t = newTodoTitle.trim();
+    if (!t) return;
+    addTodo(t);
+    setNewTodoTitle('');
+  };
+
+  if (!loaded) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+        <Text style={[styles.loading, { color: colors.muted }]}>Loading...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 100 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Greeting */}
+        <Text style={[styles.greeting, { color: colors.text }]}>
+          {getGreeting()} 👋
+        </Text>
+        <Text style={[styles.subGreeting, { color: colors.muted }]}>
+          Ready to continue your streak?
+        </Text>
+
+        {/* Streak */}
+        <View style={styles.streakWrap}>
+          <StreakCounter streak={currentStreak} justIncreased={justIncreasedStreak.current} />
+        </View>
+
+        {/* 3D Character */}
+        <View style={styles.characterWrap}>
+          <Character3D mood={characterMood} />
+        </View>
+
+        {/* Level - key so bar resets when XP changes (e.g. on undo) */}
+        <LevelCard
+          key={`level-${totalXP}`}
+          level={level}
+          progress={levelProgress}
+          title={levelName}
+        />
+
+        {/* Daily Progress */}
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Daily Progress</Text>
+        <View style={styles.progressWrap}>
+          <ProgressRing progress={progressPercent} label="Completed" />
+        </View>
+
+        {/* Today's Habits */}
+        <View style={styles.habitsHeader}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Today's Habits</Text>
+          <Link href="/add-habit" asChild>
+            <View style={[styles.addButton, { backgroundColor: colors.primary }]}>
+              <Ionicons name="add" size={22} color="#fff" />
+              <Text style={styles.addButtonText}>Add</Text>
+            </View>
+          </Link>
+        </View>
+
+        {habits.length === 0 ? (
+          <View style={[styles.emptyCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <Ionicons name="fitness-outline" size={40} color={colors.muted} />
+            <Text style={[styles.emptyText, { color: colors.muted }]}>
+              No habits yet. Add one to get started!
+            </Text>
+            <Link href="/add-habit" asChild>
+              <Text style={[styles.emptyLink, { color: colors.primary }]}>Add your first habit</Text>
+            </Link>
+          </View>
+        ) : (
+          habits.map((habit) => (
+            <HabitCard key={habit.id} habit={habit} onToggle={handleToggle} />
+          ))
+        )}
+
+        {/* Daily Todos */}
+        <Text style={[styles.sectionTitle, { color: colors.text }, styles.todosSectionTitle]}>
+          Daily todos
+        </Text>
+        <View style={[styles.todoInputRow, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+          <TextInput
+            style={[styles.todoInput, { color: colors.text }]}
+            placeholder="Add a task for today..."
+            placeholderTextColor={colors.muted}
+            value={newTodoTitle}
+            onChangeText={setNewTodoTitle}
+            onSubmitEditing={handleAddTodo}
+            returnKeyType="done"
+            maxLength={120}
+          />
+          <Pressable
+            style={[styles.todoAddBtn, { backgroundColor: newTodoTitle.trim() ? colors.primary : colors.cardBorder }]}
+            onPress={handleAddTodo}
+            disabled={!newTodoTitle.trim()}
+          >
+            <Text style={styles.todoAddBtnText}>Add</Text>
+          </Pressable>
+        </View>
+        {todayTodos.length === 0 ? (
+          <Text style={[styles.todosEmpty, { color: colors.muted }]}>
+            No todos for today. Add one above.
+          </Text>
+        ) : (
+          todayTodos.map((todo) => (
+            <TodoCard
+              key={todo.id}
+              todo={todo}
+              onToggle={toggleTodo}
+              onDelete={deleteTodo}
+            />
+          ))
+        )}
+
+        {/* Heatmap */}
+        <View style={styles.heatmapSection}>
+          <Heatmap data={heatmap} />
+        </View>
+      </ScrollView>
+
+      <ConfettiCelebration
+        visible={showCelebration}
+        onDismiss={() => {
+          setShowCelebration(false);
+          setCharacterMood('idle');
+        }}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+  },
+  loading: {
+    textAlign: 'center',
+    marginTop: 80,
+  },
+  greeting: {
+    fontSize: 26,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  subGreeting: {
+    fontSize: 15,
+    marginBottom: 16,
+  },
+  streakWrap: {
+    marginBottom: 16,
+  },
+  characterWrap: {
+    marginBottom: 16,
+    height: 180,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  progressWrap: {
+    marginBottom: 24,
+  },
+  habitsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    gap: 6,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  addButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  emptyCard: {
+    padding: 28,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  emptyText: {
+    fontSize: 15,
+    marginTop: 10,
+    marginBottom: 12,
+  },
+  emptyLink: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  heatmapSection: {
+    marginTop: 8,
+    marginBottom: 24,
+  },
+  todosSectionTitle: {
+    marginTop: 8,
+  },
+  todoInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 14,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  todoInput: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    fontSize: 16,
+  },
+  todoAddBtn: {
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    justifyContent: 'center',
+  },
+  todoAddBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  todosEmpty: {
+    fontSize: 14,
+    marginBottom: 20,
+    fontStyle: 'italic',
   },
 });
